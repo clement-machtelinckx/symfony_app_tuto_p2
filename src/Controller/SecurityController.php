@@ -24,4 +24,16 @@ class SecurityController extends AbstractController
             'user' => $user->getId(),
         ]);
     }
+
+    #[Route('/logout', name:'app_logout')]
+    public function logout(Security $security): Response
+    {
+        // logout the user in on the current firewall
+        $response = $security->logout();
+
+        // you can also disable the csrf logout
+        $response = $security->logout(false);
+
+        // ... return $response (if set) or e.g. redirect to the homepage
+    }
 }
