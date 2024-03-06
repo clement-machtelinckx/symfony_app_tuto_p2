@@ -22,7 +22,7 @@ security:
                 password_path: password
 
             logout:
-                path: /logout
+                path: app_logout
 
 
             # activate different ways to authenticate
