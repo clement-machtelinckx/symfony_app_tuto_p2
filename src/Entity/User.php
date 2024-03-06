@@ -234,4 +234,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             ->toArray()
         ;
     }
+    
+    public function markAsTokenAuthenticated(array $scopes)
+    {
+        $this->accessTokenScopes = $scopes;
+    }
+
 }

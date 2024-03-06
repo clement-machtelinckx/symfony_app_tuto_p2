@@ -2,11 +2,11 @@
 
 namespace App\DataFixtures;
 
-use App\Factory\UserFactory;
 use App\Factory\ApiTokenFactory;
 use App\Factory\DragonTreasureFactory;
-use Doctrine\Persistence\ObjectManager;
+use App\Factory\UserFactory;
 use Doctrine\Bundle\FixturesBundle\Fixture;
+use Doctrine\Persistence\ObjectManager;
 
 class AppFixtures extends Fixture
 {
@@ -21,6 +21,7 @@ class AppFixtures extends Fixture
         DragonTreasureFactory::createMany(40, function () {
             return [
                 'owner' => UserFactory::random(),
+                'isPublished' => rand(0, 10) > 3,
             ];
         });
 

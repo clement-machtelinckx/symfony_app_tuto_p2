@@ -20,9 +20,10 @@ security:
                 check_path: app_login
                 username_path: email
                 password_path: password
-
             logout:
                 path: app_logout
+            access_token:
+                token_handler: App\Security\ApiTokenHandler
 
 
             # activate different ways to authenticate
