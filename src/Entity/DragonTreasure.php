@@ -34,7 +34,7 @@ use function Symfony\Component\String\u;
             ],
         ),
         new GetCollection(),
-        new Post(),
+        new Post(security: 'is_granted("ROLE_TREASURE_CREATE")'),
         new Put(),
         new Patch(),
     ],
