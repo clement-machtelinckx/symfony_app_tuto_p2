@@ -36,8 +36,9 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
         ),
         new GetCollection(),
         new Post(security: 'is_granted("ROLE_TREASURE_CREATE")'),
-        new Patch(security: 'is_granted("ROLE_TREASURE_EDIT") and object.getOwner() == user',
-            securityPostDenormalize: 'object.getOwner() == user',),
+        new Patch(
+            security: 'is_granted("ROLE_ADMIN") or (is_granted("ROLE_TREASURE_EDIT") and object.getOwner() == user)',
+            securityPostDenormalize: 'is_granted("ROLE_ADMIN") or object.getOwner() == user',),
         new Delete(security: 'is_granted("ROLE_ADMIN")'),
     ],
     formats: [

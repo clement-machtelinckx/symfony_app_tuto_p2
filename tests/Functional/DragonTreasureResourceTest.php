@@ -137,6 +137,26 @@ class DrangonTreasureResourceTest extends ApiTestCase
             ->assertStatus(403);
     }
 
+    public function testAdminCanPatchToEditTreasure(): void
+    {
+        $admin = UserFactory::new()->asAdmin()->create();
+        $treasure = DragonTreasureFactory::createOne([
+            'isPublished' => true,
+        ]);
+
+        $this->browser()
+            ->actingAs($admin)
+            ->patch('/api/treasures/'.$treasure->getId(), [
+                'json' => [
+                    'value' => 12345,
+                ],
+            ])
+            ->assertStatus(200)
+            ->assertJsonMatches('value', 12345)
+            ->assertJsonMatches('isPublished', true)
+        ;
+    }
+
     
 
 
