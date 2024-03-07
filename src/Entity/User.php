@@ -4,11 +4,17 @@ namespace App\Entity;
 
 use App\Entity\ApiToken;
 use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Post;
+use App\Entity\DragonTreasure;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Delete;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\UserRepository;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\GetCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use ApiPlatform\Serializer\Filter\PropertyFilter;
@@ -22,8 +28,29 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ApiResource(
+    operations: [
+        new Get(
+            security: 'is_granted("PUBLIC_ACCESS")',
+        ),
+        new GetCollection(
+            security: 'is_granted("PUBLIC_ACCESS")',
+        ),
+        new Post(
+            security: 'is_granted("PUBLIC_ACCESS")',
+        ),
+        new Put(
+            security: 'is_granted("ROLE_USER_EDIT")',
+        ),
+        new Patch(
+            security: 'is_granted("ROLE_USER_EDIT")',
+        ),
+        new Delete(
+            security: 'is_granted("ROLE_ADMIN")',
+        ),
+    ],
     normalizationContext: ['groups' => ['user:read']],
     denormalizationContext: ['groups' => ['user:write']],
+    security: 'is_granted("ROLE_USER")',
 )]
 #[ApiResource(
     uriTemplate: '/treasures/{treasure_id}/owner.{_format}',
@@ -35,6 +62,7 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
         ),
     ],
     normalizationContext: ['groups' => ['user:read']],
+    security: 'is_granted("ROLE_USER")',
 )]
 #[ApiFilter(PropertyFilter::class)]
 #[UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
@@ -116,17 +144,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @see UserInterface
      */
+    // public function getRoles(): array
+    // {
+    //     if (null === $this->accessTokenScopes) {
+    //         return $this->roles;
+    //         $role[] = 'ROLE_FULL_USER';
+    //     } else {
+    //         return $this->accessTokenScopes;
+    //     }
+    //     // guarantee every user at least has ROLE_USER
+    //     $roles[] = 'ROLE_USER';
+
+    //     return array_unique($roles);
+    // }
+
+
+    /**
+     * GPT Style for ROLES method
+     */
     public function getRoles(): array
     {
-        if (null === $this->accessTokenScopes) {
-            return $this->roles;
-            $role[] = 'ROLE_FULL_USER';
+        $roles = [];
+    
+        // Si $this->accessTokenScopes est défini, utilisez-le comme les rôles de l'utilisateur
+        if (null !== $this->accessTokenScopes) {
+            $roles = $this->accessTokenScopes;
         } else {
-            return $this->accessTokenScopes;
+            // Si $this->accessTokenScopes n'est pas défini, utilisez les rôles par défaut
+            $roles = $this->roles;
+            // Ajoutez le rôle 'ROLE_FULL_USER' dans les rôles par défaut
+            $roles[] = 'ROLE_FULL_USER';
         }
-        // guarantee every user at least has ROLE_USER
+    
+        // Garantissez que chaque utilisateur a au moins le rôle 'ROLE_USER'
         $roles[] = 'ROLE_USER';
-
+    
+        // Supprimez les doublons et retournez les rôles
         return array_unique($roles);
     }
 
