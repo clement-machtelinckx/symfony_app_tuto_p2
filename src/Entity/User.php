@@ -178,6 +178,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     
         // Garantissez que chaque utilisateur a au moins le rôle 'ROLE_USER'
         $roles[] = 'ROLE_USER';
+        $roles[] = 'ROLE_TREASURE_EDIT';
     
         // Supprimez les doublons et retournez les rôles
         return array_unique($roles);

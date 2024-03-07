@@ -12,6 +12,10 @@ api_platform:
                 name: Authorization
                 type: header
 
+    defaults:
+        extra_properties:
+            standard_put: true
+
 
     # enable_docs: false
     # enable_entrypoint: false
