@@ -2,55 +2,52 @@
 
 namespace App\Entity;
 
-use App\Entity\ApiToken;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Put;
-use ApiPlatform\Metadata\Link;
-use ApiPlatform\Metadata\Post;
-use App\Entity\DragonTreasure;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Delete;
-use Doctrine\ORM\Mapping as ORM;
-use App\Repository\UserRepository;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
-use Doctrine\Common\Collections\Collection;
-use Doctrine\Common\Collections\ArrayCollection;
+use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\Serializer\Filter\PropertyFilter;
-use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use App\Repository\UserRepository;
+use App\Validator\TreasuresAllowedOwnerChange;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
+use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
-
-
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Serializer\Annotation\SerializedName;
+use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ApiResource(
+    // Now add `operations` set to the 6 normal operations
     operations: [
-        new Get(
-            security: 'is_granted("PUBLIC_ACCESS")',
-        ),
-        new GetCollection(
-            security: 'is_granted("PUBLIC_ACCESS")',
-        ),
+        new Get(),
+        new GetCollection(),
         new Post(
             security: 'is_granted("PUBLIC_ACCESS")',
+            validationContext: ['groups' => ['Default', 'postValidation']],
         ),
         new Put(
-            security: 'is_granted("ROLE_USER_EDIT")',
+            security: 'is_granted("ROLE_USER_EDIT")'
         ),
         new Patch(
-            security: 'is_granted("ROLE_USER_EDIT")',
+            security: 'is_granted("ROLE_USER_EDIT")'
         ),
-        new Delete(
-            security: 'is_granted("ROLE_ADMIN")',
-        ),
+        new Delete(),
     ],
     normalizationContext: ['groups' => ['user:read']],
     denormalizationContext: ['groups' => ['user:write']],
     security: 'is_granted("ROLE_USER")',
+    extraProperties: [
+        'standard_put' => true,
+    ],
 )]
 #[ApiResource(
     uriTemplate: '/treasures/{treasure_id}/owner.{_format}',
@@ -63,6 +60,9 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
     ],
     normalizationContext: ['groups' => ['user:read']],
     security: 'is_granted("ROLE_USER")',
+    extraProperties: [
+        'standard_put' => true,
+    ],
 )]
 #[ApiFilter(PropertyFilter::class)]
 #[UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
@@ -83,11 +83,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private array $roles = [];
 
+    /* Scopes given during API authentication */
+    private ?array $accessTokenScopes = null;
+
     /**
      * @var string The hashed password
      */
     #[ORM\Column]
     private ?string $password = null;
+
+    #[Groups(['user:write'])]
+    #[SerializedName('password')]
+    #[Assert\NotBlank(groups: ['postValidation'])]
+    private ?string $plainPassword = null;
 
     #[ORM\Column(length: 255, unique: true)]
     #[Groups(['user:read', 'user:write', 'treasure:item:get', 'treasure:write'])]
@@ -95,22 +103,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $username = null;
 
     #[ORM\OneToMany(mappedBy: 'owner', targetEntity: DragonTreasure::class, cascade: ['persist'], orphanRemoval: true)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:write'])]
     #[Assert\Valid]
+    #[TreasuresAllowedOwnerChange]
     private Collection $dragonTreasures;
 
     #[ORM\OneToMany(mappedBy: 'ownedBy', targetEntity: ApiToken::class)]
     private Collection $apiTokens;
-
-    /**
-     * Scope given during API Authentication
-     */
-    private ?array $accessTokenScopes = null;
-
-    #[Groups(['user:write'])]
-    #[SerializedName('password')]
-    #[Asser\NotBlank]
-    private ?string $plainPassword = null;
 
     public function __construct()
     {
@@ -146,45 +145,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * TUTO style for ROLES method
-     */
-    // public function getRoles(): array
-    // {
-    //     if (null === $this->accessTokenScopes) {
-    //         return $this->roles;
-    //         $role[] = 'ROLE_FULL_USER';
-    //     } else {
-    //         return $this->accessTokenScopes;
-    //     }
-    //     // guarantee every user at least has ROLE_USER
-    //     $roles[] = 'ROLE_USER';
-
-    //     return array_unique($roles);
-    // }
-
-
-    /**
-     * GPT Style for ROLES method
+     * @see UserInterface
      */
     public function getRoles(): array
     {
-        $roles = [];
-    
-        // Si $this->accessTokenScopes est défini, utilisez-le comme les rôles de l'utilisateur
-        if (null !== $this->accessTokenScopes) {
-            $roles = $this->accessTokenScopes;
-        } else {
-            // Si $this->accessTokenScopes n'est pas défini, utilisez les rôles par défaut
+        if (null === $this->accessTokenScopes) {
+            // logged in via the full user mechanism
             $roles = $this->roles;
-            // Ajoutez le rôle 'ROLE_FULL_USER' dans les rôles par défaut
             $roles[] = 'ROLE_FULL_USER';
+        } else {
+            $roles = $this->accessTokenScopes;
         }
-    
-        // Garantissez que chaque utilisateur a au moins le rôle 'ROLE_USER'
+
+        // guarantee every user at least has ROLE_USER
         $roles[] = 'ROLE_USER';
-        $roles[] = 'ROLE_TREASURE_EDIT';
-    
-        // Supprimez les doublons et retournez les rôles
+
         return array_unique($roles);
     }
 
@@ -239,6 +214,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->dragonTreasures;
     }
 
+    #[Groups(['user:read'])]
+    #[SerializedName('dragonTreasures')]
+    public function getPublishedDragonTreasures(): Collection
+    {
+        return $this->dragonTreasures->filter(static function (DragonTreasure $treasure) {
+            return $treasure->getIsPublished();
+        });
+    }
+
     public function addDragonTreasure(DragonTreasure $treasure): self
     {
         if (!$this->dragonTreasures->contains($treasure)) {
@@ -269,7 +253,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->apiTokens;
     }
 
-    public function addApiToken(ApiToken $apiToken): static
+    public function addApiToken(ApiToken $apiToken): self
     {
         if (!$this->apiTokens->contains($apiToken)) {
             $this->apiTokens->add($apiToken);
@@ -279,7 +263,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function removeApiToken(ApiToken $apiToken): static
+    public function removeApiToken(ApiToken $apiToken): self
     {
         if ($this->apiTokens->removeElement($apiToken)) {
             // set the owning side to null (unless already changed)
@@ -302,22 +286,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             ->toArray()
         ;
     }
-    
-    public function markAsTokenAuthenticated(array $scopes): void
+
+    public function markAsTokenAuthenticated(array $scopes)
     {
         $this->accessTokenScopes = $scopes;
     }
 
-    public function getPlainPassword(): ?string
-    {
-        return $this->plainPassword;
-    }
-
-    public function setPlainPassword(string $plainPassword): self
+    public function setPlainPassword(string $plainPassword): User
     {
         $this->plainPassword = $plainPassword;
 
         return $this;
     }
 
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
+    }
 }

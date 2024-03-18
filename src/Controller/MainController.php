@@ -9,6 +9,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 
+
 class MainController extends AbstractController
 {
     #[Route('/')]

@@ -16,17 +16,19 @@ class UserResourceTest extends ApiTestCase
             ->post('/api/users', [
                 'json' => [
                     'email' => 'draggin_in_the_morning@coffee.com',
+                    'username' => 'draggin_in_the_morning',
                     'password' => 'password',
-                ],
+                ]
             ])
             ->assertStatus(201)
             ->post('/login', [
                 'json' => [
                     'email' => 'draggin_in_the_morning@coffee.com',
                     'password' => 'password',
-                ],
+                ]
             ])
-            ->assertSuccessful();
+            ->assertSuccessful()
+        ;
     }
 
     public function testPatchToUpdateUser(): void
@@ -39,9 +41,7 @@ class UserResourceTest extends ApiTestCase
                 'json' => [
                     'username' => 'changed',
                 ],
-                'headers' => [
-                    'Content-Type' => 'application/merge-patch+json',
-                ],
+                'headers' => ['Content-Type' => 'application/merge-patch+json']
             ])
             ->assertStatus(200);
     }

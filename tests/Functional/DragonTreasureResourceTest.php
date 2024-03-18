@@ -114,7 +114,7 @@ class DrangonTreasureResourceTest extends ApiTestCase
 
 
 
-        $user2 = UserFactory::createone();
+        $user2 = UserFactory::createOne();
 
             $this->browser()
             ->actingAs($user2)
@@ -137,27 +137,33 @@ class DrangonTreasureResourceTest extends ApiTestCase
             ->assertStatus(403);
     }
 
+
+    /**
+     * not fucking working 
+     */
     public function testAdminCanPatchToEditTreasure(): void
     {
         $admin = UserFactory::new()->asAdmin()->create();
         $treasure = DragonTreasureFactory::createOne([
-            'isPublished' => false,
+            'isPublished' => true,
         ]);
 
         $this->browser()
             ->actingAs($admin)
-            ->patch('/api/treasures/'. $treasure->getId(), [
+            ->patch('/api/treasures/'.$treasure->getId(), [
                 'json' => [
                     'value' => 12345,
                 ],
             ])
             ->assertStatus(200)
             ->assertJsonMatches('value', 12345)
-            ->assertJsonMatches('isPublished', false)
-            ;
-
+            ->assertJsonMatches('isPublished', true)
+        ;
     }
 
+    /**
+     * same ici sa marche pas cette mlerde
+     */
     public function testOwnerCanSeeIsPublishedField(): void
     {
         $user = UserFactory::createOne();

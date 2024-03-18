@@ -2,28 +2,29 @@
 
 namespace App\Entity;
 
-use Carbon\Carbon;
-use ApiPlatform\Metadata\Get;
-use ApiPlatform\Metadata\Put;
-use ApiPlatform\Metadata\Link;
-use ApiPlatform\Metadata\Post;
-use Doctrine\DBAL\Types\Types;
-use ApiPlatform\Metadata\Patch;
-use ApiPlatform\Metadata\Delete;
-use Doctrine\ORM\Mapping as ORM;
+use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
+use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Doctrine\Orm\Filter\RangeFilter;
 use ApiPlatform\Metadata\ApiFilter;
 use ApiPlatform\Metadata\ApiProperty;
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
-use function Symfony\Component\String\u;
-use App\Repository\DragonTreasureRepository;
-use ApiPlatform\Doctrine\Orm\Filter\RangeFilter;
-use ApiPlatform\Doctrine\Orm\Filter\SearchFilter;
+use ApiPlatform\Metadata\Link;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use ApiPlatform\Serializer\Filter\PropertyFilter;
-use ApiPlatform\Doctrine\Orm\Filter\BooleanFilter;
-use Symfony\Component\Serializer\Annotation\Groups;
+use App\Repository\DragonTreasureRepository;
+use App\Validator\IsValidOwner;
+use Carbon\Carbon;
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\SerializedName;
+use function Symfony\Component\String\u;
 
 #[ORM\Entity(repositoryClass: DragonTreasureRepository::class)]
 #[ApiResource(
@@ -36,11 +37,15 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
             ],
         ),
         new GetCollection(),
-        new Post(security: 'is_granted("ROLE_TREASURE_CREATE")'),
+        new Post(
+            security: 'is_granted("ROLE_TREASURE_CREATE")',
+        ),
         new Patch(
             security: 'is_granted("EDIT", object)',
-            securityPostDenormalize: 'is_granted("EDIT", object)'),
-        new Delete(security: 'is_granted("ROLE_ADMIN")'),
+        ),
+        new Delete(
+            security: 'is_granted("ROLE_ADMIN")',
+        ),
     ],
     formats: [
         'jsonld',
@@ -56,6 +61,9 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
         'groups' => ['treasure:write'],
     ],
     paginationItemsPerPage: 10,
+    extraProperties: [
+        'standard_put' => true,
+    ],
 )]
 #[ApiResource(
     uriTemplate: '/users/{user_id}/treasures.{_format}',
@@ -69,6 +77,9 @@ use Symfony\Component\Serializer\Annotation\SerializedName;
     ],
     normalizationContext: [
         'groups' => ['treasure:read'],
+    ],
+    extraProperties: [
+        'standard_put' => true,
     ],
 )]
 #[ApiFilter(PropertyFilter::class)]
@@ -115,14 +126,14 @@ class DragonTreasure
 
     #[ORM\Column]
     #[ApiFilter(BooleanFilter::class)]
-    #[Groups(['treasure:read', 'treasure:write'])]
-    #[ApiProperty(security: 'is_granted("EDIT", object)')]
+    #[Groups(['admin:read', 'admin:write', 'owner:read'])]
     private bool $isPublished = false;
 
     #[ORM\ManyToOne(inversedBy: 'dragonTreasures')]
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['treasure:read', 'treasure:write'])]
     #[Assert\Valid]
+    #[IsValidOwner]
     #[ApiFilter(SearchFilter::class, strategy: 'exact')]
     private ?User $owner = null;
 
