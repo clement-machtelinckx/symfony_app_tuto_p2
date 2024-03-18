@@ -87,7 +87,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
-    #[Groups(['user:write'])]
     private ?string $password = null;
 
     #[ORM\Column(length: 255, unique: true)]
@@ -107,6 +106,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * Scope given during API Authentication
      */
     private ?array $accessTokenScopes = null;
+
+    #[Groups(['user:write'])]
+    #[SerializedName('password')]
+    #[Asser\NotBlank]
+    private ?string $plainPassword = null;
 
     public function __construct()
     {
@@ -212,7 +216,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function eraseCredentials()
     {
         // If you store any temporary, sensitive data on the user, clear it here
-        // $this->plainPassword = null;
+        $this->plainPassword = null;
     }
 
     public function getUsername(): ?string
@@ -302,6 +306,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function markAsTokenAuthenticated(array $scopes): void
     {
         $this->accessTokenScopes = $scopes;
+    }
+
+    public function getPlainPassword(): ?string
+    {
+        return $this->plainPassword;
+    }
+
+    public function setPlainPassword(string $plainPassword): self
+    {
+        $this->plainPassword = $plainPassword;
+
+        return $this;
     }
 
 }
