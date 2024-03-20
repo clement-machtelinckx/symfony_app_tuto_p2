@@ -23,6 +23,9 @@ use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Component\Validator\Constraints as Assert;
+use App\State\UserHashPasswordProcessor;
+
+
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ApiResource(
@@ -33,6 +36,7 @@ use Symfony\Component\Validator\Constraints as Assert;
         new Post(
             security: 'is_granted("PUBLIC_ACCESS")',
             validationContext: ['groups' => ['Default', 'postValidation']],
+            processor: UserHashPasswordProcessor::class,
         ),
         new Put(
             security: 'is_granted("ROLE_USER_EDIT")'

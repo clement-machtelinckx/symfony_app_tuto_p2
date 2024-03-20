@@ -123,8 +123,9 @@ class DrangonTreasureResourceTest extends ApiTestCase
                     'value' => 6789,
                 ],
             ])
-            ->assertStatus(403);
-
+            ->assertStatus(403)
+            // ->assertJsonmatches('value', 12345)
+                ;
 
 
             $this->browser()
